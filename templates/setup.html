@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#050807">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
   <title>初期設定が必要です | LifeOS</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-page">
   <main class="login-card">
-    <div class="brand-mark">L<span>O</span></div>
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M11 8v32h18" /><path d="M31 11l7 4v18l-7 4-7-4V15z" /><path d="M16 16l8 8-8 8" /></svg></div>
     <p class="eyebrow">SYSTEM CONFIGURATION / 初期設定</p>
     <h1>もう少しで準備完了<span class="accent">.</span></h1>
     <p class="muted">LifeOSを起動するには、Renderの環境変数にログイン用パスワードと秘密鍵を設定する必要があります。</p>
