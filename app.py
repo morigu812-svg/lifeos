@@ -68,7 +68,7 @@ def login():
             session.clear()
             session["logged_in"] = True
             return redirect(url_for("index"))
-        flash("パスワードが違います。もう一度試してな。", "error")
+        flash("パスワードが違います。もう一度お試しください。", "error")
     return render_template("login.html")
 
 
@@ -99,14 +99,14 @@ def index():
 def add_task():
     title = request.form.get("title", "").strip()
     if not title:
-        flash("タスク名を入力してな。", "error")
+        flash("タスク名を入力してください。", "error")
     elif len(title) > 120:
-        flash("タスク名は120文字以内にしてな。", "error")
+        flash("タスク名は120文字以内で入力してください。", "error")
     else:
         with get_db() as db:
             db.execute("INSERT INTO tasks (title, created_at) VALUES (?, ?)",
                        (title, date.today().isoformat()))
-        flash("タスクを追加したで。", "success")
+        flash("タスクを追加しました。", "success")
     return redirect(url_for("index") + "#tasks")
 
 
@@ -123,7 +123,7 @@ def toggle_task(task_id):
 def delete_task(task_id):
     with get_db() as db:
         db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-    flash("タスクを削除したで。", "success")
+    flash("タスクを削除しました。", "success")
     return redirect(url_for("index") + "#tasks")
 
 
@@ -132,13 +132,13 @@ def delete_task(task_id):
 def save_note():
     content = request.form.get("content", "")
     if len(content) > 5000:
-        flash("ノートは5000文字以内にしてな。", "error")
+        flash("ノートは5,000文字以内で入力してください。", "error")
         return redirect(url_for("index") + "#notes")
     with get_db() as db:
         db.execute("""INSERT INTO notes (note_date, content) VALUES (?, ?)
             ON CONFLICT(note_date) DO UPDATE SET content = excluded.content""",
             (date.today().isoformat(), content))
-    flash("今日のノートを保存したで。", "success")
+    flash("今日のノートを保存しました。", "success")
     return redirect(url_for("index") + "#notes")
 
 
@@ -152,21 +152,21 @@ def add_site():
     description = request.form.get("description", "").strip()[:500]
     parsed = urlparse(url)
     if not name or len(name) > 100:
-        flash("サイト名を1〜100文字で入力してな。", "error")
+        flash("サイト名を1〜100文字で入力してください。", "error")
         return redirect(url_for("index") + "#sites")
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        flash("サイトURLは https:// または http:// から入力してな。", "error")
+        flash("サイトURLは https:// または http:// から入力してください。", "error")
         return redirect(url_for("index") + "#sites")
     if repo_url:
         repo = urlparse(repo_url)
         if repo.scheme not in ("http", "https") or repo.netloc.lower() not in ("github.com", "www.github.com") or len(repo.path.strip("/").split("/")) < 2:
-            flash("GitHubリポジトリURLを確認してな（例：https://github.com/ユーザー名/リポジトリ名）。", "error")
+            flash("GitHubリポジトリURLを確認してください（例：https://github.com/ユーザー名/リポジトリ名）。", "error")
             return redirect(url_for("index") + "#sites")
     with get_db() as db:
         db.execute("""INSERT INTO sites (name, url, category, description, repo_url, created_at)
             VALUES (?, ?, ?, ?, ?, ?)""",
             (name, url, category, description, repo_url, datetime.now().isoformat(timespec="seconds")))
-    flash("サイトを登録したで。", "success")
+    flash("サイトを登録しました。", "success")
     return redirect(url_for("index") + "#sites")
 
 
@@ -215,12 +215,12 @@ def import_backup():
     """Restore a LifeOS JSON backup, replacing current tasks, notes and sites."""
     uploaded = request.files.get("backup_file")
     if not uploaded or not uploaded.filename:
-        flash("復元するバックアップファイルを選んでな。", "error")
+        flash("復元するバックアップファイルを選択してください。", "error")
         return redirect(url_for("index") + "#data-management")
 
     raw = uploaded.read(2 * 1024 * 1024 + 1)
     if len(raw) > 2 * 1024 * 1024:
-        flash("バックアップは2MB以下のファイルを選んでな。", "error")
+        flash("バックアップは2MB以下のファイルを選択してください。", "error")
         return redirect(url_for("index") + "#data-management")
 
     try:
@@ -256,7 +256,7 @@ def import_backup():
             if "id" in site and (not isinstance(site["id"], int) or site["id"] < 1):
                 raise ValueError("invalid site id")
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
-        flash("ファイルを読み取れへんかった。LifeOSから書き出したJSONバックアップを選んでな。", "error")
+        flash("ファイルを読み取れませんでした。LifeOSから書き出したJSONバックアップを選択してください。", "error")
         return redirect(url_for("index") + "#data-management")
 
     try:
@@ -294,10 +294,10 @@ def import_backup():
                         values,
                     )
     except sqlite3.Error:
-        flash("復元に失敗したため、データを確認して再試行してな。", "error")
+        flash("復元に失敗しました。データを確認して、もう一度お試しください。", "error")
         return redirect(url_for("index") + "#data-management")
 
-    flash("バックアップから復元したで。現在のタスク・ノート・サイト情報はバックアップの内容に置き換わったで。", "success")
+    flash("バックアップから復元しました。現在のタスク・ノート・サイト情報は、バックアップの内容に置き換わりました。", "success")
     return redirect(url_for("index") + "#data-management")
 
 
