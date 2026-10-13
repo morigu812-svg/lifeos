@@ -1,10 +1,12 @@
 import os
+import json
 import sqlite3
+from io import BytesIO
 from datetime import date, datetime
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for, send_file
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -175,6 +177,128 @@ def delete_site(site_id):
         db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
     flash("サイト情報を削除したで。", "success")
     return redirect(url_for("index") + "#sites")
+
+
+@app.get("/backup/export")
+@login_required
+def export_backup():
+    """Download all user data as a portable JSON backup."""
+    with get_db() as db:
+        tasks = [dict(row) for row in db.execute(
+            "SELECT id, title, done, created_at FROM tasks ORDER BY id"
+        ).fetchall()]
+        notes = [dict(row) for row in db.execute(
+            "SELECT note_date, content FROM notes ORDER BY note_date"
+        ).fetchall()]
+        sites = [dict(row) for row in db.execute(
+            "SELECT id, name, url, category, description, repo_url, created_at FROM sites ORDER BY id"
+        ).fetchall()]
+
+    payload = {
+        "app": "LifeOS",
+        "format_version": 1,
+        "exported_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "data": {"tasks": tasks, "notes": notes, "sites": sites},
+    }
+    content = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    return send_file(
+        BytesIO(content),
+        mimetype="application/json",
+        as_attachment=True,
+        download_name=f"lifeos-backup-{date.today().isoformat()}.json",
+    )
+
+
+@app.post("/backup/import")
+@login_required
+def import_backup():
+    """Restore a LifeOS JSON backup, replacing current tasks, notes and sites."""
+    uploaded = request.files.get("backup_file")
+    if not uploaded or not uploaded.filename:
+        flash("復元するバックアップファイルを選んでな。", "error")
+        return redirect(url_for("index") + "#data-management")
+
+    raw = uploaded.read(2 * 1024 * 1024 + 1)
+    if len(raw) > 2 * 1024 * 1024:
+        flash("バックアップは2MB以下のファイルを選んでな。", "error")
+        return redirect(url_for("index") + "#data-management")
+
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+        data = payload["data"]
+        if payload.get("app") != "LifeOS" or payload.get("format_version") != 1:
+            raise ValueError("unsupported format")
+        tasks, notes, sites = data["tasks"], data["notes"], data["sites"]
+        if not all(isinstance(items, list) for items in (tasks, notes, sites)):
+            raise ValueError("invalid lists")
+
+        for task in tasks:
+            if not isinstance(task, dict) or not isinstance(task.get("title"), str) or not task["title"].strip():
+                raise ValueError("invalid task")
+            if not isinstance(task.get("done"), int) or task["done"] not in (0, 1):
+                raise ValueError("invalid task status")
+            if not isinstance(task.get("created_at"), str):
+                raise ValueError("invalid task date")
+            if "id" in task and (not isinstance(task["id"], int) or task["id"] < 1):
+                raise ValueError("invalid task id")
+        for note in notes:
+            if not isinstance(note, dict) or not isinstance(note.get("note_date"), str) or not isinstance(note.get("content"), str):
+                raise ValueError("invalid note")
+        for site in sites:
+            if not isinstance(site, dict):
+                raise ValueError("invalid site")
+            for field in ("name", "url", "category", "description", "repo_url", "created_at"):
+                if not isinstance(site.get(field, "" if field in ("description", "repo_url") else None), str):
+                    raise ValueError("invalid site field")
+            parsed = urlparse(site["url"])
+            if not site["name"].strip() or parsed.scheme not in ("http", "https") or not parsed.netloc:
+                raise ValueError("invalid site URL")
+            if "id" in site and (not isinstance(site["id"], int) or site["id"] < 1):
+                raise ValueError("invalid site id")
+    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        flash("ファイルを読み取れへんかった。LifeOSから書き出したJSONバックアップを選んでな。", "error")
+        return redirect(url_for("index") + "#data-management")
+
+    try:
+        with get_db() as db:
+            db.execute("DELETE FROM tasks")
+            db.execute("DELETE FROM notes")
+            db.execute("DELETE FROM sites")
+            for task in tasks:
+                if "id" in task:
+                    db.execute(
+                        "INSERT INTO tasks (id, title, done, created_at) VALUES (?, ?, ?, ?)",
+                        (task["id"], task["title"], task["done"], task["created_at"]),
+                    )
+                else:
+                    db.execute(
+                        "INSERT INTO tasks (title, done, created_at) VALUES (?, ?, ?)",
+                        (task["title"], task["done"], task["created_at"]),
+                    )
+            for note in notes:
+                db.execute(
+                    "INSERT INTO notes (note_date, content) VALUES (?, ?)",
+                    (note["note_date"], note["content"]),
+                )
+            for site in sites:
+                values = (site["name"], site["url"], site.get("category", "その他"),
+                          site.get("description", ""), site.get("repo_url", ""), site["created_at"])
+                if "id" in site:
+                    db.execute(
+                        "INSERT INTO sites (id, name, url, category, description, repo_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (site["id"], *values),
+                    )
+                else:
+                    db.execute(
+                        "INSERT INTO sites (name, url, category, description, repo_url, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        values,
+                    )
+    except sqlite3.Error:
+        flash("復元に失敗したため、データを確認して再試行してな。", "error")
+        return redirect(url_for("index") + "#data-management")
+
+    flash("バックアップから復元したで。現在のタスク・ノート・サイト情報はバックアップの内容に置き換わったで。", "success")
+    return redirect(url_for("index") + "#data-management")
 
 
 @app.get("/health")
