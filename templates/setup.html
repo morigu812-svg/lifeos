@@ -3,14 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050807">
   <title>初期設定が必要です | LifeOS</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-page">
   <main class="login-card">
-    <p class="eyebrow">SYSTEM CONFIGURATION</p>
-    <h1>初期設定が必要です<span class="accent">.</span></h1>
-    <p class="muted">RenderのEnvironmentで、LIFEOS_PASSWORDとSECRET_KEYを設定してから再デプロイしてください。</p>
+    <div class="brand-mark">L<span>O</span></div>
+    <p class="eyebrow">SYSTEM CONFIGURATION / 初期設定</p>
+    <h1>もう少しで準備完了<span class="accent">.</span></h1>
+    <p class="muted">LifeOSを起動するには、Renderの環境変数にログイン用パスワードと秘密鍵を設定する必要があります。</p>
+    <div class="setup-steps">
+      <p><strong>01</strong> RenderのLifeOSサービスを開く</p>
+      <p><strong>02</strong> 「Environment」で次の2項目を登録する</p>
+      <code>LIFEOS_PASSWORD</code>
+      <code>SECRET_KEY</code>
+      <p><strong>03</strong> 保存して再デプロイする</p>
+    </div>
+    <p class="login-foot">値そのものを他人に共有しないでください。</p>
   </main>
 </body>
 </html>
