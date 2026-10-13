@@ -87,6 +87,23 @@
           <div class="panel note-panel"><form method="post" action="{{ url_for('save_note') }}"><label for="daily-note">今日の気づき・アイデア</label><textarea id="daily-note" name="content" maxlength="5000" placeholder="今日できたこと、気づいたこと、明日やることを書き留めよう...">{{ note }}</textarea><div class="note-bottom"><span>最大 5,000 文字</span><button type="submit" class="button secondary">ノートを保存 ↗</button></div></form></div>
         </section>
       </div>
+      <div class="section-heading" id="data-management"><div><p class="eyebrow">05 / DATA SAFETY</p><h2>データ管理<span>.</span></h2></div><span class="section-count">BACKUP / RESTORE</span></div>
+      <section class="panel data-management-panel">
+        <div class="data-management-copy">
+          <span class="data-management-icon">↧</span>
+          <div><h3>大切なデータを守る</h3><p>タスク・すべての日付のノート・登録サイトをJSONファイルに保存できる。機種変更やデプロイ後にデータが消えたときは、そのファイルから復元してな。</p></div>
+        </div>
+        <a class="button primary backup-download" href="{{ url_for('export_backup') }}">↓ バックアップを書き出す</a>
+        <div class="restore-area">
+          <h4>バックアップから復元</h4>
+          <p>復元すると、現在のタスク・ノート・登録サイトはファイル内の内容に置き換わるで。先に現在のデータも書き出しておくのがおすすめ。</p>
+          <form method="post" action="{{ url_for('import_backup') }}" enctype="multipart/form-data" class="restore-form" onsubmit="return confirm('現在のタスク・ノート・サイト情報をバックアップの内容に置き換えます。先に現在のデータをバックアップしましたか？');">
+            <label class="backup-file-label">JSONバックアップファイル<input type="file" name="backup_file" accept=".json,application/json" required></label>
+            <button type="submit" class="button secondary">バックアップから復元する ↗</button>
+          </form>
+        </div>
+        <p class="storage-notice">注意：これは手動バックアップ機能やで。データが消える前に、定期的にファイルをダウンロードして、自分の端末やクラウドに保管してな。自動保存や、すでに失われたデータの復元はできません。</p>
+      </section>
       <footer class="footer"><span>LifeOS // 個人用ダッシュボード</span><span>自分の毎日を、自分でつくる <b>●</b></span></footer>
     </main>
   </div>
