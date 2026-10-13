@@ -4,24 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#050807">
+  <meta name="description" content="LifeOS 個人用ダッシュボードへのログイン">
   <title>ログイン | LifeOS</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-page">
   <main class="login-card">
     <div class="brand-mark">L<span>O</span></div>
-    <p class="eyebrow">SECURE ACCESS / 01</p>
+    <p class="eyebrow">PERSONAL ACCESS / 個人認証</p>
     <h1>LifeOS<span class="accent">.</span></h1>
-    <p class="muted">自分のデジタル司令室へアクセス。</p>
+    <p class="muted">毎日を整える、自分だけのデジタル司令室。</p>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
     {% endwith %}
     <form method="post" class="stack-form">
-      <label for="password">ACCESS PASSWORD</label>
+      <label for="password">ログインパスワード</label>
       <input id="password" name="password" type="password" placeholder="パスワードを入力" required autocomplete="current-password">
-      <button class="button primary full-width" type="submit">システムに接続 <span>→</span></button>
+      <button class="button primary full-width" type="submit">LifeOSを開く <span>→</span></button>
     </form>
-    <p class="login-foot">CYBER CORE // PERSONAL DASHBOARD</p>
+    <p class="login-foot">自分の時間を、自分の手に。</p>
   </main>
 </body>
 </html>
