@@ -32,3 +32,18 @@ button,input,textarea{font:inherit}button,a{-webkit-tap-highlight-color:transpar
 .brand-mark{position:relative;overflow:hidden;background:linear-gradient(145deg,rgba(141,255,183,.09),rgba(115,234,255,.025));border-color:rgba(141,255,183,.62);box-shadow:0 0 24px rgba(141,255,183,.1),inset 0 0 18px rgba(141,255,183,.08)}
 .brand-mark svg{width:30px;height:30px;fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(141,255,183,.3))}
 .core-center{font-weight:800;letter-spacing:-2px}
+
+
+/* Data backup and restore */
+.data-management-panel{padding:20px}
+.data-management-copy{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+.data-management-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid rgba(141,255,183,.35);border-radius:11px;color:var(--green);font-size:22px;background:rgba(141,255,183,.05)}
+.data-management-copy h3{margin:2px 0 7px;font-size:15px}
+.data-management-copy p,.restore-area p{margin:0;color:var(--muted);font-size:11px;line-height:1.9}
+.backup-download{margin-bottom:20px}
+.restore-area{border-top:1px solid var(--line);padding-top:18px}
+.restore-area h4{margin:0 0 8px;font-size:13px}
+.restore-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-top:14px}
+.backup-file-label{display:flex;flex-direction:column;gap:8px;flex:1;min-width:220px;color:#91a99a;font:9px var(--mono);letter-spacing:.5px}
+.backup-file-label input{font:11px var(--sans);padding:10px}
+@media(max-width:520px){.restore-form{align-items:stretch;flex-direction:column}.restore-form .button{width:100%}.backup-file-label{min-width:0}}
