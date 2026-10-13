@@ -175,7 +175,7 @@ def add_site():
 def delete_site(site_id):
     with get_db() as db:
         db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
-    flash("サイト情報を削除したで。", "success")
+    flash("サイト情報を削除しました。", "success")
     return redirect(url_for("index") + "#sites")
 
 
