@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050807">
+  <title>ログイン | LifeOS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="brand-mark">L<span>O</span></div>
+    <p class="eyebrow">SECURE ACCESS / 01</p>
+    <h1>LifeOS<span class="accent">.</span></h1>
+    <p class="muted">自分のデジタル司令室へアクセス。</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post" class="stack-form">
+      <label for="password">ACCESS PASSWORD</label>
+      <input id="password" name="password" type="password" placeholder="パスワードを入力" required autocomplete="current-password">
+      <button class="button primary full-width" type="submit">システムに接続 <span>→</span></button>
+    </form>
+    <p class="login-foot">CYBER CORE // PERSONAL DASHBOARD</p>
+  </main>
+</body>
+</html>
