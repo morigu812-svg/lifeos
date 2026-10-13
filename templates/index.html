@@ -4,56 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#050807">
-  <meta name="description" content="LifeOS Cyber Core — タスク、習慣、ノートを管理する個人用ダッシュボード。">
-  <title>LifeOS — Cyber Core</title>
+  <meta name="description" content="LifeOSは、タスク・習慣・日々の記録をひとつにまとめる個人用ダッシュボードです。">
+  <title>LifeOS — 自分を動かす、個人司令室</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <div class="app-shell">
     <aside class="sidebar">
-      <a href="{{ url_for('index') }}" class="brand"><span class="brand-mark">L<span>O</span></span><span><strong>LifeOS</strong><small>CYBER CORE</small></span></a>
-      <p class="nav-label">WORKSPACE</p>
-      <a href="#overview" class="nav-item active"><span>▦</span> Overview</a>
-      <a href="#tasks" class="nav-item"><span>⌁</span> Task Control</a>
-      <a href="#habits" class="nav-item"><span>◈</span> Habit Matrix</a>
-      <a href="#notes" class="nav-item"><span>▤</span> Daily Log</a>
+      <a href="{{ url_for('index') }}" class="brand"><span class="brand-mark">L<span>O</span></span><span><strong>LifeOS</strong><small>自分を動かすシステム</small></span></a>
+      <p class="nav-label">メニュー</p>
+      <a href="#overview" class="nav-item active"><span>▦</span> ダッシュボード</a>
+      <a href="#tasks" class="nav-item"><span>⌁</span> タスク管理</a>
+      <a href="#habits" class="nav-item"><span>◈</span> 習慣トラッカー</a>
+      <a href="#notes" class="nav-item"><span>▤</span> デイリーノート</a>
       <div class="sidebar-bottom">
-        <div class="system-status"><span class="status-dot"></span> SYSTEM ONLINE<small>LOCAL DATABASE</small></div>
+        <div class="system-status"><span class="status-dot"></span> システム稼働中<small>個人用ワークスペース</small></div>
         <form method="post" action="{{ url_for('logout') }}"><button type="submit" class="logout-button">↗ ログアウト</button></form>
       </div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div><p class="eyebrow">PERSONAL OPERATING SYSTEM</p><p class="topbar-title">CONTROL CENTER <span>// 001</span></p></div><div class="date-pill"><span class="status-dot"></span> {{ today }}</div></header>
+      <header class="topbar"><div><p class="eyebrow">PERSONAL DASHBOARD / 個人司令室</p><p class="topbar-title">今日をデザインする <span>// 001</span></p></div><div class="date-pill"><span class="status-dot"></span> {{ today }}</div></header>
       <section class="hero" id="overview">
-        <div class="hero-copy"><p class="eyebrow">YOUR DAY. YOUR SYSTEM.</p><h1>Make your<br>own <span>momentum.</span></h1><p class="muted">今日の行動を、ひとつずつコントロールしよう。</p><a href="#tasks" class="button primary">タスクを確認する <span>↘</span></a></div>
-        <div class="core-visual" aria-label="LifeOSのサイバーコア装飾"><div class="core-ring ring-one"></div><div class="core-ring ring-two"></div><div class="core-ring ring-three"></div><div class="core-center">LO</div><span class="orbit-label label-top">CORE / 01</span><span class="orbit-label label-bottom">FOCUS ACTIVE</span></div>
-        <div class="hero-index">LIFEOS <span>V1.0</span></div>
+        <div class="hero-copy"><p class="eyebrow">YOUR LIFE, YOUR RULES.</p><h1>今日を、<br><span>自分の手で動かす。</span></h1><p class="muted">やることを整理して、小さな一歩を積み重ねよう。<br>ここは、あなたの毎日を整えるための司令室。</p><a href="#tasks" class="button primary">今日のタスクを見る <span>↘</span></a></div>
+        <div class="core-visual" aria-label="LifeOSのサイバーコア装飾"><div class="core-ring ring-one"></div><div class="core-ring ring-two"></div><div class="core-ring ring-three"></div><div class="core-center">LO</div><span class="orbit-label label-top">LIFE / 01</span><span class="orbit-label label-bottom">FOCUS MODE</span></div>
+        <div class="hero-index">LIFEOS <span>VERSION 1.0</span></div>
       </section>
       {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+      <div class="section-heading"><div><p class="eyebrow">AT A GLANCE / ひと目で確認</p><h2>今日の進捗<span>.</span></h2></div><span class="section-count">TODAY / {{ today }}</span></div>
       <section class="stats-grid">
-        <article class="stat-card"><div class="stat-top"><span>TASK QUEUE</span><span>01</span></div><div class="stat-value">{{ active_tasks }}<small> 件</small></div><p class="stat-caption">未完了のタスク</p><div class="stat-line"><span style="width: {{ (completed_tasks / total_tasks * 100) if total_tasks else 0 }}%"></span></div></article>
-        <article class="stat-card"><div class="stat-top"><span>COMPLETED</span><span>02</span></div><div class="stat-value">{{ completed_tasks }}<small> 件</small></div><p class="stat-caption">完了したタスク</p><div class="stat-line cyan"><span style="width: {{ (completed_tasks / total_tasks * 100) if total_tasks else 0 }}%"></span></div></article>
-        <article class="stat-card"><div class="stat-top"><span>HABIT MATRIX</span><span>03</span></div><div class="stat-value">{{ checked_habits }}<small> / {{ habits|length }}</small></div><p class="stat-caption">今日の習慣チェック</p><div class="stat-line purple"><span style="width: {{ (checked_habits / (habits|length) * 100) if habits|length else 0 }}%"></span></div></article>
+        <article class="stat-card"><div class="stat-top"><span>未完了のタスク</span><span>01</span></div><div class="stat-value">{{ active_tasks }}<small> 件</small></div><p class="stat-caption">これから取り組むこと</p><div class="stat-line"><span style="width: {{ (completed_tasks / total_tasks * 100) if total_tasks else 0 }}%"></span></div></article>
+        <article class="stat-card"><div class="stat-top"><span>完了したタスク</span><span>02</span></div><div class="stat-value">{{ completed_tasks }}<small> 件</small></div><p class="stat-caption">今日までに片づけたこと</p><div class="stat-line cyan"><span style="width: {{ (completed_tasks / total_tasks * 100) if total_tasks else 0 }}%"></span></div></article>
+        <article class="stat-card"><div class="stat-top"><span>今日の習慣</span><span>03</span></div><div class="stat-value">{{ checked_habits }}<small> / {{ habits|length }}</small></div><p class="stat-caption">チェックした習慣</p><div class="stat-line purple"><span style="width: {{ (checked_habits / (habits|length) * 100) if habits|length else 0 }}%"></span></div></article>
       </section>
-      <div class="section-heading" id="tasks"><div><p class="eyebrow">MISSION MANAGEMENT / 01</p><h2>Task Control<span>.</span></h2></div><span class="section-count">{{ total_tasks }} ITEMS</span></div>
+      <div class="section-heading" id="tasks"><div><p class="eyebrow">01 / MISSION CONTROL</p><h2>タスク管理<span>.</span></h2></div><span class="section-count">{{ total_tasks }} 件登録中</span></div>
       <section class="panel task-panel">
-        <form method="post" action="{{ url_for('add_task') }}" class="task-add"><input type="text" name="title" maxlength="120" placeholder="新しいタスクを入力..." aria-label="新しいタスク" required><button type="submit" class="button primary">＋ ADD</button></form>
+        <form method="post" action="{{ url_for('add_task') }}" class="task-add"><input type="text" name="title" maxlength="120" placeholder="例：英単語を15分勉強する" aria-label="新しいタスク" required><button type="submit" class="button primary">＋ タスクを追加</button></form>
         {% if tasks %}<div class="task-list">{% for task in tasks %}<div class="task-row {% if task['done'] %}is-done{% endif %}">
           <form method="post" action="{{ url_for('toggle_task', task_id=task['id']) }}"><button class="check-button" type="submit" aria-label="タスクの完了状態を切り替える">{% if task['done'] %}✓{% endif %}</button></form>
-          <div class="task-info"><span class="task-title">{{ task['title'] }}</span><small>{{ "COMPLETED" if task['done'] else "IN PROGRESS" }}</small></div>
-          <form method="post" action="{{ url_for('delete_task', task_id=task['id']) }}" onsubmit="return confirm('このタスクを削除する？');"><button type="submit" class="icon-button" aria-label="タスクを削除">×</button></form>
-        </div>{% endfor %}</div>{% else %}<div class="empty-state"><span>◇</span><p>タスクはまだありません。</p><small>最初のミッションを追加してみよう。</small></div>{% endif %}
+          <div class="task-info"><span class="task-title">{{ task['title'] }}</span><small>{{ "完了" if task['done'] else "取り組み中" }}</small></div>
+          <form method="post" action="{{ url_for('delete_task', task_id=task['id']) }}" onsubmit="return confirm('このタスクを削除しますか？');"><button type="submit" class="icon-button" aria-label="タスクを削除">×</button></form>
+        </div>{% endfor %}</div>{% else %}<div class="empty-state"><span>◇</span><p>タスクはまだありません。</p><small>まずは、今日やりたいことをひとつ追加してみよう。</small></div>{% endif %}
       </section>
       <div class="two-column">
-        <section id="habits"><div class="section-heading compact"><div><p class="eyebrow">DAILY ROUTINE / 02</p><h2>Habit Matrix<span>.</span></h2></div></div>
-          <div class="panel habit-panel">{% for habit in habits %}<form method="post" action="{{ url_for('toggle_habit', habit_id=habit['id']) }}" class="habit-row"><span class="habit-symbol">{% if habit['checked'] %}✓{% else %}◇{% endif %}</span><span class="habit-name">{{ habit['title'] }}</span><button type="submit" class="habit-toggle {% if habit['checked'] %}checked{% endif %}">{{ "DONE" if habit['checked'] else "CHECK" }}</button></form>{% endfor %}<p class="panel-foot">小さな行動を積み重ねよう。</p></div>
+        <section id="habits"><div class="section-heading compact"><div><p class="eyebrow">02 / DAILY ROUTINE</p><h2>習慣トラッカー<span>.</span></h2></div></div>
+          <div class="panel habit-panel">{% for habit in habits %}<form method="post" action="{{ url_for('toggle_habit', habit_id=habit['id']) }}" class="habit-row"><span class="habit-symbol">{% if habit['checked'] %}✓{% else %}◇{% endif %}</span><span class="habit-name">{{ habit['title'] }}</span><button type="submit" class="habit-toggle {% if habit['checked'] %}checked{% endif %}">{{ "完了 ✓" if habit['checked'] else "チェック" }}</button></form>{% endfor %}<p class="panel-foot">完璧じゃなくていい。続けることが力になる。</p></div>
         </section>
-        <section id="notes"><div class="section-heading compact"><div><p class="eyebrow">PERSONAL LOG / 03</p><h2>Daily Log<span>.</span></h2></div></div>
-          <div class="panel note-panel"><form method="post" action="{{ url_for('save_note') }}"><label for="daily-note">TODAY'S THOUGHTS</label><textarea id="daily-note" name="content" maxlength="5000" placeholder="今日の気づき、明日の予定、アイデアなど...">{{ note }}</textarea><div class="note-bottom"><span>MAX 5000 CHARACTERS</span><button type="submit" class="button secondary">SAVE LOG ↗</button></div></form></div>
+        <section id="notes"><div class="section-heading compact"><div><p class="eyebrow">03 / PERSONAL JOURNAL</p><h2>今日のノート<span>.</span></h2></div></div>
+          <div class="panel note-panel"><form method="post" action="{{ url_for('save_note') }}"><label for="daily-note">今日の気づき・アイデア</label><textarea id="daily-note" name="content" maxlength="5000" placeholder="今日できたこと、気づいたこと、明日やることを書き留めよう...">{{ note }}</textarea><div class="note-bottom"><span>最大 5,000 文字</span><button type="submit" class="button secondary">ノートを保存 ↗</button></div></form></div>
         </section>
       </div>
-      <footer class="footer"><span>LifeOS // CYBER CORE</span><span>BUILD YOUR OWN SYSTEM <b>●</b></span></footer>
+      <footer class="footer"><span>LifeOS // 個人用ダッシュボード</span><span>自分の毎日を、自分でつくる <b>●</b></span></footer>
     </main>
   </div>
 </body>
