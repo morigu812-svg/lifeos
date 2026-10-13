@@ -1,21 +1,15 @@
 import os
 import sqlite3
-import uuid
 from datetime import date, datetime
 from functools import wraps
-from pathlib import Path
 from urllib.parse import urlparse
 
-from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "local-dev-key-change-me")
-app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 DB_PATH = os.environ.get("LIFEOS_DB_PATH", "lifeos.db")
-UPLOAD_DIR = Path(os.environ.get("LIFEOS_UPLOAD_DIR", "site_backups"))
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 password_hash = os.environ.get("LIFEOS_PASSWORD_HASH")
 plain_password = os.environ.get("LIFEOS_PASSWORD")
@@ -44,8 +38,11 @@ def init_db():
         db.execute("""CREATE TABLE IF NOT EXISTS sites (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL, url TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'その他',
-            description TEXT NOT NULL DEFAULT '', backup_name TEXT,
-            backup_original_name TEXT, created_at TEXT NOT NULL)""")
+            description TEXT NOT NULL DEFAULT '', repo_url TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL)""")
+        columns = {row["name"] for row in db.execute("PRAGMA table_info(sites)").fetchall()}
+        if "repo_url" not in columns:
+            db.execute("ALTER TABLE sites ADD COLUMN repo_url TEXT NOT NULL DEFAULT ''")
         for title in ("勉強する", "コードを書く", "机を整理する"):
             db.execute("INSERT OR IGNORE INTO habits (title) VALUES (?)", (title,))
 
@@ -171,6 +168,7 @@ def toggle_habit(habit_id):
 def add_site():
     name = request.form.get("name", "").strip()
     url = request.form.get("url", "").strip()
+    repo_url = request.form.get("repo_url", "").strip()
     category = request.form.get("category", "その他").strip()[:40] or "その他"
     description = request.form.get("description", "").strip()[:500]
     parsed = urlparse(url)
@@ -178,53 +176,26 @@ def add_site():
         flash("サイト名を1〜100文字で入力してな。", "error")
         return redirect(url_for("index") + "#sites")
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        flash("URLは https:// または http:// から入力してな。", "error")
+        flash("サイトURLは https:// または http:// から入力してな。", "error")
         return redirect(url_for("index") + "#sites")
-    backup = request.files.get("backup")
-    stored_name = None
-    original_name = None
-    if backup and backup.filename:
-        original_name = secure_filename(backup.filename) or "site-backup.zip"
-        if Path(original_name).suffix.lower() != ".zip":
-            flash("バックアップはZIP形式でアップロードしてな。HTML・CSS・画像などをまとめたZIPに対応してるで。", "error")
+    if repo_url:
+        repo = urlparse(repo_url)
+        if repo.scheme not in ("http", "https") or repo.netloc.lower() not in ("github.com", "www.github.com") or len(repo.path.strip("/").split("/")) < 2:
+            flash("GitHubリポジトリURLを確認してな（例：https://github.com/ユーザー名/リポジトリ名）。", "error")
             return redirect(url_for("index") + "#sites")
-        stored_name = f"{uuid.uuid4().hex}.zip"
-        backup.save(UPLOAD_DIR / stored_name)
     with get_db() as db:
-        db.execute("""INSERT INTO sites (name, url, category, description, backup_name, backup_original_name, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (name, url, category, description, stored_name, original_name, datetime.now().isoformat(timespec="seconds")))
-    flash("サイトを登録したで。" + (" ZIPバックアップも保存したで。" if stored_name else ""), "success")
+        db.execute("""INSERT INTO sites (name, url, category, description, repo_url, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)""",
+            (name, url, category, description, repo_url, datetime.now().isoformat(timespec="seconds")))
+    flash("サイトを登録したで。", "success")
     return redirect(url_for("index") + "#sites")
-
-
-@app.get("/sites/<int:site_id>/backup")
-@login_required
-def download_site_backup(site_id):
-    with get_db() as db:
-        site = db.execute("SELECT backup_name, backup_original_name FROM sites WHERE id = ?", (site_id,)).fetchone()
-    if not site or not site["backup_name"]:
-        abort(404)
-    path = UPLOAD_DIR / site["backup_name"]
-    if not path.is_file():
-        flash("バックアップファイルが見つからへん。Renderの保存領域がリセットされた可能性があるで。", "error")
-        return redirect(url_for("index") + "#sites")
-    return send_from_directory(UPLOAD_DIR, site["backup_name"], as_attachment=True,
-                               download_name=site["backup_original_name"] or "site-backup.zip")
 
 
 @app.post("/sites/<int:site_id>/delete")
 @login_required
 def delete_site(site_id):
     with get_db() as db:
-        site = db.execute("SELECT backup_name FROM sites WHERE id = ?", (site_id,)).fetchone()
-        if site:
-            db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
-    if site and site["backup_name"]:
-        try:
-            (UPLOAD_DIR / site["backup_name"]).unlink(missing_ok=True)
-        except OSError:
-            pass
+        db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
     flash("サイト情報を削除したで。", "success")
     return redirect(url_for("index") + "#sites")
 
