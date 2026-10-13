@@ -83,13 +83,15 @@ def logout():
 def index():
     today = date.today().isoformat()
     with get_db() as db:
-        tasks = [dict(row) for row in db.execute("SELECT id, title, done, created_at FROM tasks ORDER BY done ASC, id DESC").fetchall()]
-        notes = [dict(row) for row in db.execute("SELECT note_date, content FROM notes ORDER BY note_date").fetchall()]
-        sites = [dict(row) for row in db.execute("SELECT id, name, url, category, description, repo_url, created_at FROM sites ORDER BY id DESC").fetchall()]
-        habits = [dict(row) for row in db.execute("SELECT id, title FROM habits ORDER BY id").fetchall()]
-        habit_checks = [dict(row) for row in db.execute("SELECT habit_id, check_date FROM habit_checks ORDER BY check_date").fetchall()]
-    initial_data = {"tasks": tasks, "notes": notes, "sites": sites, "habits": habits, "habit_checks": habit_checks}
-    return render_template("index.html", today=today, initial_data=initial_data)
+        tasks = db.execute("SELECT * FROM tasks ORDER BY done ASC, id DESC").fetchall()
+        note = db.execute("SELECT content FROM notes WHERE note_date = ?", (today,)).fetchone()
+        sites = db.execute("SELECT * FROM sites ORDER BY id DESC").fetchall()
+    total = len(tasks)
+    completed = sum(1 for t in tasks if t["done"])
+    return render_template("index.html", tasks=tasks, sites=sites,
+        note=note["content"] if note else "", today=today,
+        total_tasks=total, completed_tasks=completed,
+        active_tasks=total-completed)
 
 
 @app.post("/tasks/add")
