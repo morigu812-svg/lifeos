@@ -25,7 +25,7 @@
       </div>
     </aside>
     <main class="main-content">
-      <header class="topbar"><div><p class="eyebrow">PERSONAL DASHBOARD / 個人司令室</p><p class="topbar-title">今日をデザインする <span>// 001</span></p></div><div class="date-pill"><span class="status-dot"></span> {{ today }}</div></header>
+      <header class="topbar"><div><p class="eyebrow">PERSONAL DASHBOARD / 個人司令室</p><p class="topbar-title">今日をデザインする <span>// 001</span></p></div><div class="topbar-actions"><button type="button" class="refresh-button" onclick="window.location.href=window.location.pathname+'?refresh='+Date.now()" title="ページを再読み込み"><span aria-hidden="true">↻</span> ページを更新</button><div class="date-pill"><span class="status-dot"></span> {{ today }}</div></div></header>
       <section class="hero" id="overview">
         <div class="hero-copy"><p class="eyebrow">YOUR LIFE, YOUR RULES.</p><h1>今日を、<br><span>自分の手で動かす。</span></h1><p class="muted">やることを整理して、小さな一歩を積み重ねよう。<br>ここは、あなたの毎日を整えるための司令室。</p><a href="#tasks" class="button primary">今日のタスクを見る <span>↘</span></a></div>
         <div class="core-visual" aria-label="LifeOSのサイバーコア装飾"><div class="core-ring ring-one"></div><div class="core-ring ring-two"></div><div class="core-ring ring-three"></div><div class="core-center">LO</div><span class="orbit-label label-top">LIFE / 01</span><span class="orbit-label label-bottom">FOCUS MODE</span></div>
@@ -50,15 +50,16 @@
 
       <div class="section-heading" id="sites"><div><p class="eyebrow">04 / MY WEB LIBRARY</p><h2>マイサイト<span>.</span></h2></div><span class="section-count">{{ sites|length }} 件登録中</span></div>
       <section class="panel sites-panel">
-        <div class="sites-intro"><div><h3>自分のサイトを、ひとつの場所に。</h3><p>URLを登録してすぐ開ける。ZIPにまとめたHTML・CSS・画像などもバックアップできる。</p></div><span class="sites-badge">PERSONAL LIBRARY</span></div>
+        <div class="sites-intro"><div><h3>自分のサイトを、ひとつの場所に。</h3><p>公開URLとGitHubリポジトリをまとめて管理。デプロイ後はページ更新ボタンで最新の表示を確認できる。</p></div><span class="sites-badge">PERSONAL LIBRARY</span></div>
         <form method="post" action="{{ url_for('add_site') }}" enctype="multipart/form-data" class="site-form">
           <div class="site-form-grid">
             <label>サイト名<input name="name" maxlength="100" placeholder="例：ブロスタ攻略サイト" required></label>
-            <label>サイトURL<input name="url" type="url" placeholder="https://example.com" required></label>
+            <label>公開サイトURL<input name="url" type="url" placeholder="https://example.com" required></label>
+            <label>GitHubリポジトリURL（任意）<input name="repo_url" type="url" placeholder="https://github.com/ユーザー名/リポジトリ名"></label>
             <label>カテゴリ<select name="category"><option>個人開発</option><option>ゲーム</option><option>勉強</option><option>仕事・活動</option><option>その他</option></select></label>
             <label>説明（任意）<input name="description" maxlength="500" placeholder="どんなサイトかメモ"></label>
           </div>
-          <label class="upload-label" for="site-backup"><span class="upload-icon">＋</span><span><strong>サイトのバックアップZIPを追加（任意）</strong><small>HTML・CSS・JavaScript・画像などをZIPにまとめて選択。最大50MB。</small></span><input id="site-backup" type="file" name="backup" accept=".zip,application/zip"></label>
+
           <button type="submit" class="button primary">サイトを登録する <span>↗</span></button>
         </form>
         {% if sites %}
@@ -68,18 +69,18 @@
             <h3>{{ site['name'] }}</h3>
             {% if site['description'] %}<p class="site-description">{{ site['description'] }}</p>{% else %}<p class="site-description muted">説明はまだありません。</p>{% endif %}
             <a class="site-url" href="{{ site['url'] }}" target="_blank" rel="noopener noreferrer"><span>{{ site['url'] }}</span><span>↗</span></a>
+            {% if site['repo_url'] %}<a class="site-url repo-url" href="{{ site['repo_url'] }}" target="_blank" rel="noopener noreferrer"><span>GitHub リポジトリ</span><span>↗</span></a>{% endif %}
             <div class="site-card-actions">
               <a class="button secondary" href="{{ site['url'] }}" target="_blank" rel="noopener noreferrer">サイトを開く ↗</a>
-              {% if site['backup_name'] %}<a class="button backup-button" href="{{ url_for('download_site_backup', site_id=site['id']) }}">ZIPを保存 ↓</a>{% else %}<span class="no-backup">バックアップ未登録</span>{% endif %}
-              <form method="post" action="{{ url_for('delete_site', site_id=site['id']) }}" onsubmit="return confirm('このサイト情報と保存済みZIPを削除しますか？');"><button class="icon-button" type="submit" aria-label="サイトを削除">×</button></form>
+              {% if site['repo_url'] %}<a class="button backup-button" href="{{ site['repo_url'] }}" target="_blank" rel="noopener noreferrer">GitHubを見る ↗</a>{% endif %}
+              <form method="post" action="{{ url_for('delete_site', site_id=site['id']) }}" onsubmit="return confirm('このサイト情報を削除しますか？');"><button class="icon-button" type="submit" aria-label="サイトを削除">×</button></form>
             </div>
-            {% if site['backup_original_name'] %}<p class="backup-name">保存ファイル：{{ site['backup_original_name'] }}</p>{% endif %}
           </article>
         {% endfor %}</div>
         {% else %}
-        <div class="empty-state site-empty"><span>⌘</span><p>まだサイトが登録されていません。</p><small>上のフォームからURLを登録。ファイルも残したい場合はサイト一式をZIPにして添付してな。</small></div>
+        <div class="empty-state site-empty"><span>⌘</span><p>まだサイトが登録されていません。</p><small>公開URLとGitHubリポジトリURLを登録して、自分のサイトを整理しよう。</small></div>
         {% endif %}
-        <p class="storage-notice">保存について：この機能はURL情報とZIPファイルを保管します。Renderの永続ディスクが未設定の場合、再デプロイ等で保存データが消える可能性があります。大切なバックアップは手元にも残してください。</p>
+        <p class="storage-notice">「ページを更新」はLifeOSの画面を再読み込みする機能です。登録した公開サイトそのものを再デプロイする機能ではありません。</p>
       </section>
       <div class="two-column">
         <section id="habits"><div class="section-heading compact"><div><p class="eyebrow">02 / DAILY ROUTINE</p><h2>習慣トラッカー<span>.</span></h2></div></div>
