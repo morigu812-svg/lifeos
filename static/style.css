@@ -27,3 +27,8 @@ button,input,textarea{font:inherit}button,a{-webkit-tap-highlight-color:transpar
 /* Header refresh and GitHub repository links */
 .topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}.refresh-button{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid rgba(141,255,183,.25);border-radius:8px;background:rgba(141,255,183,.06);color:var(--green);font-size:10px;transition:background .2s,border-color .2s,transform .2s}.refresh-button span{font-size:17px;line-height:1}.refresh-button:hover{background:rgba(141,255,183,.12);border-color:rgba(141,255,183,.5);transform:translateY(-1px)}.repo-url{margin-top:7px;color:#9fbcff;border-color:rgba(159,188,255,.13)}.repo-url span:last-child{color:#9fbcff}
 @media(max-width:520px){.topbar-actions{align-items:flex-end;flex-direction:column}.refresh-button{padding:8px 10px}.date-pill{font-size:8px}}
+
+/* LifeOS monogram brand */
+.brand-mark{position:relative;overflow:hidden;background:linear-gradient(145deg,rgba(141,255,183,.09),rgba(115,234,255,.025));border-color:rgba(141,255,183,.62);box-shadow:0 0 24px rgba(141,255,183,.1),inset 0 0 18px rgba(141,255,183,.08)}
+.brand-mark svg{width:30px;height:30px;fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(141,255,183,.3))}
+.core-center{font-weight:800;letter-spacing:-2px}
