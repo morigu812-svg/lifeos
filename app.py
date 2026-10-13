@@ -43,8 +43,6 @@ def init_db():
         columns = {row["name"] for row in db.execute("PRAGMA table_info(sites)").fetchall()}
         if "repo_url" not in columns:
             db.execute("ALTER TABLE sites ADD COLUMN repo_url TEXT NOT NULL DEFAULT ''")
-        for title in ("勉強する", "コードを書く", "机を整理する"):
-            db.execute("INSERT OR IGNORE INTO habits (title) VALUES (?)", (title,))
 
 
 def login_required(view):
@@ -85,19 +83,13 @@ def index():
     with get_db() as db:
         tasks = db.execute("SELECT * FROM tasks ORDER BY done ASC, id DESC").fetchall()
         note = db.execute("SELECT content FROM notes WHERE note_date = ?", (today,)).fetchone()
-        habits = db.execute("""SELECT habits.id, habits.title,
-            CASE WHEN habit_checks.habit_id IS NULL THEN 0 ELSE 1 END AS checked
-            FROM habits LEFT JOIN habit_checks
-            ON habits.id = habit_checks.habit_id AND habit_checks.check_date = ?
-            ORDER BY habits.id""", (today,)).fetchall()
         sites = db.execute("SELECT * FROM sites ORDER BY id DESC").fetchall()
     total = len(tasks)
     completed = sum(1 for t in tasks if t["done"])
-    checked = sum(1 for h in habits if h["checked"])
-    return render_template("index.html", tasks=tasks, habits=habits, sites=sites,
+    return render_template("index.html", tasks=tasks, sites=sites,
         note=note["content"] if note else "", today=today,
         total_tasks=total, completed_tasks=completed,
-        active_tasks=total-completed, checked_habits=checked)
+        active_tasks=total-completed)
 
 
 @app.post("/tasks/add")
@@ -148,21 +140,6 @@ def save_note():
     return redirect(url_for("index") + "#notes")
 
 
-@app.post("/habits/<int:habit_id>/toggle")
-@login_required
-def toggle_habit(habit_id):
-    today = date.today().isoformat()
-    with get_db() as db:
-        exists = db.execute("SELECT 1 FROM habits WHERE id = ?", (habit_id,)).fetchone()
-        if exists:
-            checked = db.execute("SELECT 1 FROM habit_checks WHERE habit_id = ? AND check_date = ?", (habit_id, today)).fetchone()
-            if checked:
-                db.execute("DELETE FROM habit_checks WHERE habit_id = ? AND check_date = ?", (habit_id, today))
-            else:
-                db.execute("INSERT INTO habit_checks (habit_id, check_date) VALUES (?, ?)", (habit_id, today))
-    return redirect(url_for("index") + "#habits")
-
-
 @app.post("/sites/add")
 @login_required
 def add_site():
@@ -203,12 +180,6 @@ def delete_site(site_id):
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.errorhandler(413)
-def too_large(_error):
-    flash("ZIPファイルは50MB以下にしてな。", "error")
-    return redirect(url_for("index") + "#sites")
 
 
 init_db()
