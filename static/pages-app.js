@@ -7,7 +7,7 @@
   $("today-date").textContent = todayKey;
   $("heading-date").textContent = todayKey;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxdOQk_uBCl9gYm77s9p_d2WAjPqw9BCO3dRhCxgQJP_YC5vEQ167rvH_NMoIfYHxZw/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbzrV5dSQXr0oNQruUVTlPYIzJMS2PntY6IV4pwJ8Lj_109IkUohsWa_Ys6e_EVD53tp/exec";
   const pending = new Map();
   let requestCounter = 0;
 
