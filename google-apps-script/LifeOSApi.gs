@@ -40,22 +40,43 @@ function setupLifeOSDatabase() {
 }
 
 function doGet() {
-  return jsonOutput_({ ok: true, service: 'LifeOS API', version: 1 });
+  return jsonOutput_({ ok: true, service: 'LifeOS API', version: 2, transport: 'iframe-postMessage' });
 }
 
+/**
+ * GitHub Pages transport.
+ * Deploy the web app with "Execute as: Me" and "Who has access: Only myself".
+ * The Google deployment login gate protects this endpoint; no API token is placed in public JS.
+ */
 function doPost(e) {
+  let request = {};
+  let result;
   try {
-    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    const token = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
-    if (!token || !constantTimeEquals_(String(payload.token || ''), token)) {
-      return jsonOutput_({ ok: false, error: 'Unauthorized' });
+    const raw = (e && e.parameter && e.parameter.payload)
+      ? e.parameter.payload
+      : ((e && e.postData && e.postData.contents) || '{}');
+    request = JSON.parse(raw);
+    if (request.transport !== 'iframe-postMessage') {
+      // Keep JSON transport available for server-side clients, but do not use it from public JS.
+      const token = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
+      if (!token || !constantTimeEquals_(String(request.token || ''), token)) {
+        return jsonOutput_({ ok: false, error: 'Unauthorized' });
+      }
     }
-
-    const result = dispatch_(String(payload.action || ''), payload.args || {});
-    return jsonOutput_({ ok: true, data: result });
+    result = { ok: true, requestId: String(request.requestId || ''), data: dispatch_(String(request.action || ''), request.args || {}) };
   } catch (err) {
-    return jsonOutput_({ ok: false, error: String(err && err.message ? err.message : err) });
+    result = { ok: false, requestId: String(request.requestId || ''), error: String(err && err.message ? err.message : err) };
   }
+  if (request.transport === 'iframe-postMessage') return bridgeOutput_(result);
+  return jsonOutput_(result);
+}
+
+function bridgeOutput_(result) {
+  const serialized = JSON.stringify(result).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+  const html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>' +
+    'window.parent.postMessage(' + serialized + ', "https://morigu812-svg.github.io");' +
+    '</script><p>LifeOSへの応答を送信しました。この画面は閉じてかまいません。</p></body></html>';
+  return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function dispatch_(action, args) {
@@ -130,7 +151,7 @@ function addRow_(sheet, item) {
   lock.waitLock(10000);
   try {
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
-    if ('id' in headers) item.id = nextId_(sheet);
+    if (headers.includes('id')) item.id = nextId_(sheet);
     sheet.appendRow(headers.map(header => item[header] === undefined ? '' : item[header]));
     return item;
   } finally {
