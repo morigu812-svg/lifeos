@@ -1,6 +1,8 @@
 import os
 import json
 import sqlite3
+import urllib.request
+import urllib.error
 from io import BytesIO
 from datetime import date, datetime
 from functools import wraps
@@ -12,6 +14,49 @@ from werkzeug.security import check_password_hash, generate_password_hash
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "local-dev-key-change-me")
 DB_PATH = os.environ.get("LIFEOS_DB_PATH", "lifeos.db")
+GAS_API_URL = os.environ.get("LIFEOS_GAS_API_URL", "").strip()
+GAS_API_TOKEN = os.environ.get("LIFEOS_GAS_API_TOKEN", "").strip()
+
+
+class StorageUnavailable(RuntimeError):
+    pass
+
+
+def gas_call(action, args=None):
+    """Call the private LifeOS Apps Script API from the server; never expose the token to browsers."""
+    if not GAS_API_URL or not GAS_API_TOKEN:
+        raise StorageUnavailable("Google保存先が未設定です。Renderの環境変数を確認してください。")
+    payload = json.dumps({
+        "token": GAS_API_TOKEN,
+        "action": action,
+        "args": args or {},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        GAS_API_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        app.logger.exception("LifeOS Google storage request failed")
+        raise StorageUnavailable("Google保存先に接続できません。API URLとデプロイ設定を確認してください。") from exc
+    if not isinstance(result, dict) or not result.get("ok"):
+        message = result.get("error", "Unknown API error") if isinstance(result, dict) else "Invalid API response"
+        app.logger.error("LifeOS Google storage API error: %s", message)
+        raise StorageUnavailable("Google保存先でエラーが発生しました。Apps Scriptの設定とログを確認してください。")
+    return result.get("data")
+
+
+def google_storage_enabled():
+    return bool(GAS_API_URL and GAS_API_TOKEN)
+
+
+def storage_error_redirect(anchor=""):
+    flash("Google保存先に接続できませんでした。Renderの環境変数とApps Scriptのデプロイ設定を確認してください。", "error")
+    return redirect(url_for("index") + (f"#{anchor}" if anchor else ""))
 
 password_hash = os.environ.get("LIFEOS_PASSWORD_HASH")
 plain_password = os.environ.get("LIFEOS_PASSWORD")
@@ -82,14 +127,26 @@ def logout():
 @login_required
 def index():
     today = date.today().isoformat()
-    with get_db() as db:
-        tasks = db.execute("SELECT * FROM tasks ORDER BY done ASC, id DESC").fetchall()
-        note = db.execute("SELECT content FROM notes WHERE note_date = ?", (today,)).fetchone()
-        sites = db.execute("SELECT * FROM sites ORDER BY id DESC").fetchall()
+    if google_storage_enabled():
+        try:
+            data = gas_call("get_all")
+            tasks = sorted(data.get("tasks", []), key=lambda t: (int(t.get("done", 0)), -int(t.get("id", 0))))
+            notes = data.get("notes", [])
+            note = next((n for n in notes if str(n.get("note_date", ""))[:10] == today), None)
+            sites = sorted(data.get("sites", []), key=lambda s: -int(s.get("id", 0)))
+        except StorageUnavailable:
+            flash("Google保存先に接続できません。保存操作を行う前に設定を確認してください。", "error")
+            tasks, sites, note = [], [], None
+    else:
+        with get_db() as db:
+            tasks = db.execute("SELECT * FROM tasks ORDER BY done ASC, id DESC").fetchall()
+            note = db.execute("SELECT content FROM notes WHERE note_date = ?", (today,)).fetchone()
+            sites = db.execute("SELECT * FROM sites ORDER BY id DESC").fetchall()
     total = len(tasks)
-    completed = sum(1 for t in tasks if t["done"])
+    completed = sum(1 for t in tasks if int(t["done"]))
+    note_content = note.get("content", "") if isinstance(note, dict) and note else (note["content"] if note else "")
     return render_template("index.html", tasks=tasks, sites=sites,
-        note=note["content"] if note else "", today=today,
+        note=note_content, today=today,
         total_tasks=total, completed_tasks=completed,
         active_tasks=total-completed)
 
@@ -102,6 +159,12 @@ def add_task():
         flash("タスク名を入力してください。", "error")
     elif len(title) > 120:
         flash("タスク名は120文字以内で入力してください。", "error")
+    elif google_storage_enabled():
+        try:
+            gas_call("task_add", {"title": title, "created_at": date.today().isoformat()})
+            flash("タスクを追加しました。", "success")
+        except StorageUnavailable:
+            return storage_error_redirect("tasks")
     else:
         with get_db() as db:
             db.execute("INSERT INTO tasks (title, created_at) VALUES (?, ?)",
@@ -113,16 +176,28 @@ def add_task():
 @app.post("/tasks/<int:task_id>/toggle")
 @login_required
 def toggle_task(task_id):
-    with get_db() as db:
-        db.execute("UPDATE tasks SET done = CASE WHEN done = 0 THEN 1 ELSE 0 END WHERE id = ?", (task_id,))
+    if google_storage_enabled():
+        try:
+            gas_call("task_toggle", {"id": task_id})
+        except StorageUnavailable:
+            return storage_error_redirect("tasks")
+    else:
+        with get_db() as db:
+            db.execute("UPDATE tasks SET done = CASE WHEN done = 0 THEN 1 ELSE 0 END WHERE id = ?", (task_id,))
     return redirect(url_for("index") + "#tasks")
 
 
 @app.post("/tasks/<int:task_id>/delete")
 @login_required
 def delete_task(task_id):
-    with get_db() as db:
-        db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    if google_storage_enabled():
+        try:
+            gas_call("task_delete", {"id": task_id})
+        except StorageUnavailable:
+            return storage_error_redirect("tasks")
+    else:
+        with get_db() as db:
+            db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
     flash("タスクを削除しました。", "success")
     return redirect(url_for("index") + "#tasks")
 
@@ -134,10 +209,16 @@ def save_note():
     if len(content) > 5000:
         flash("ノートは5,000文字以内で入力してください。", "error")
         return redirect(url_for("index") + "#notes")
-    with get_db() as db:
-        db.execute("""INSERT INTO notes (note_date, content) VALUES (?, ?)
-            ON CONFLICT(note_date) DO UPDATE SET content = excluded.content""",
-            (date.today().isoformat(), content))
+    if google_storage_enabled():
+        try:
+            gas_call("note_save", {"note_date": date.today().isoformat(), "content": content})
+        except StorageUnavailable:
+            return storage_error_redirect("notes")
+    else:
+        with get_db() as db:
+            db.execute("""INSERT INTO notes (note_date, content) VALUES (?, ?)
+                ON CONFLICT(note_date) DO UPDATE SET content = excluded.content""",
+                (date.today().isoformat(), content))
     flash("今日のノートを保存しました。", "success")
     return redirect(url_for("index") + "#notes")
 
@@ -162,10 +243,20 @@ def add_site():
         if repo.scheme not in ("http", "https") or repo.netloc.lower() not in ("github.com", "www.github.com") or len(repo.path.strip("/").split("/")) < 2:
             flash("GitHubリポジトリURLを確認してください（例：https://github.com/ユーザー名/リポジトリ名）。", "error")
             return redirect(url_for("index") + "#sites")
-    with get_db() as db:
-        db.execute("""INSERT INTO sites (name, url, category, description, repo_url, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)""",
-            (name, url, category, description, repo_url, datetime.now().isoformat(timespec="seconds")))
+    if google_storage_enabled():
+        try:
+            gas_call("site_add", {
+                "name": name, "url": url, "category": category,
+                "description": description, "repo_url": repo_url,
+                "created_at": datetime.now().isoformat(timespec="seconds")
+            })
+        except StorageUnavailable:
+            return storage_error_redirect("sites")
+    else:
+        with get_db() as db:
+            db.execute("""INSERT INTO sites (name, url, category, description, repo_url, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                (name, url, category, description, repo_url, datetime.now().isoformat(timespec="seconds")))
     flash("サイトを登録しました。", "success")
     return redirect(url_for("index") + "#sites")
 
@@ -173,8 +264,14 @@ def add_site():
 @app.post("/sites/<int:site_id>/delete")
 @login_required
 def delete_site(site_id):
-    with get_db() as db:
-        db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
+    if google_storage_enabled():
+        try:
+            gas_call("site_delete", {"id": site_id})
+        except StorageUnavailable:
+            return storage_error_redirect("sites")
+    else:
+        with get_db() as db:
+            db.execute("DELETE FROM sites WHERE id = ?", (site_id,))
     flash("サイト情報を削除しました。", "success")
     return redirect(url_for("index") + "#sites")
 
@@ -183,16 +280,25 @@ def delete_site(site_id):
 @login_required
 def export_backup():
     """Download all user data as a portable JSON backup."""
-    with get_db() as db:
-        tasks = [dict(row) for row in db.execute(
-            "SELECT id, title, done, created_at FROM tasks ORDER BY id"
-        ).fetchall()]
-        notes = [dict(row) for row in db.execute(
-            "SELECT note_date, content FROM notes ORDER BY note_date"
-        ).fetchall()]
-        sites = [dict(row) for row in db.execute(
-            "SELECT id, name, url, category, description, repo_url, created_at FROM sites ORDER BY id"
-        ).fetchall()]
+    if google_storage_enabled():
+        try:
+            data = gas_call("get_all")
+            tasks = sorted(data.get("tasks", []), key=lambda item: int(item.get("id", 0)))
+            notes = sorted(data.get("notes", []), key=lambda item: str(item.get("note_date", "")))
+            sites = sorted(data.get("sites", []), key=lambda item: int(item.get("id", 0)))
+        except StorageUnavailable:
+            return storage_error_redirect("data-management")
+    else:
+        with get_db() as db:
+            tasks = [dict(row) for row in db.execute(
+                "SELECT id, title, done, created_at FROM tasks ORDER BY id"
+            ).fetchall()]
+            notes = [dict(row) for row in db.execute(
+                "SELECT note_date, content FROM notes ORDER BY note_date"
+            ).fetchall()]
+            sites = [dict(row) for row in db.execute(
+                "SELECT id, name, url, category, description, repo_url, created_at FROM sites ORDER BY id"
+            ).fetchall()]
 
     payload = {
         "app": "LifeOS",
@@ -257,6 +363,14 @@ def import_backup():
                 raise ValueError("invalid site id")
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
         flash("ファイルを読み取れませんでした。LifeOSから書き出したJSONバックアップを選択してください。", "error")
+        return redirect(url_for("index") + "#data-management")
+
+    if google_storage_enabled():
+        try:
+            gas_call("backup_replace", {"data": {"tasks": tasks, "notes": notes, "sites": sites}})
+        except StorageUnavailable:
+            return storage_error_redirect("data-management")
+        flash("バックアップから復元しました。現在のタスク・ノート・サイト情報は、バックアップの内容に置き換わりました。", "success")
         return redirect(url_for("index") + "#data-management")
 
     try:
