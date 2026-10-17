@@ -63,9 +63,9 @@ function doPost(e) {
         return jsonOutput_({ ok: false, error: 'Unauthorized' });
       }
     }
-    result = { ok: true, requestId: String(request.requestId || ''), data: dispatch_(String(request.action || ''), request.args || {}) };
+    result = { type: 'EA_DATA_RESULT', ok: true, requestId: String(request.requestId || ''), data: dispatch_(String(request.action || ''), request.args || {}) };
   } catch (err) {
-    result = { ok: false, requestId: String(request.requestId || ''), error: String(err && err.message ? err.message : err) };
+    result = { type: 'EA_DATA_RESULT', ok: false, requestId: String(request.requestId || ''), error: String(err && err.message ? err.message : err) };
   }
   if (request.transport === 'iframe-postMessage') return bridgeOutput_(result);
   return jsonOutput_(result);
