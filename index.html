@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050807">
+<meta name="description" content="LifeOSは、タスク・デイリーノート・自分のWebサイトをまとめる個人用ダッシュボードです。">
+<link rel="icon" href="./static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./static/style.css">
+<title>LifeOS — 自分を動かす、個人司令室</title>
+<style>
+.storage-status{margin:1rem 0;padding:.85rem 1rem;border:1px solid #29463b;border-radius:12px;color:#bdebd5;background:#0d1a15}
+.storage-status.error{color:#ffd1d1;border-color:#653838;background:#211010}
+.site-card-actions form,.task-row form{display:inline-flex}
+.inline-form{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
+.inline-form input,.site-form-grid input,.site-form-grid select,textarea{min-width:0}
+.bridge-frame{display:none;width:0;height:0;border:0}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+<div class="app-shell">
+<aside class="sidebar">
+<a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M11 8v32h18"/><path d="M31 11l7 4v18l-7 4-7-4V15z"/><path d="M16 16l8 8-8 8"/></svg></span><span><strong>LifeOS</strong><small>自分を動かすシステム</small></span></a>
+<p class="nav-label">メニュー</p>
+<a href="#overview" class="nav-item active"><span>▦</span> ダッシュボード</a>
+<a href="#tasks" class="nav-item"><span>⌁</span> タスク管理</a>
+<a href="#notes" class="nav-item"><span>▤</span> デイリーノート</a>
+<a href="#sites" class="nav-item"><span>⌂</span> マイサイト</a>
+<div class="sidebar-bottom"><div class="system-status"><span class="status-dot"></span> Google保存 <small id="sidebar-status">接続確認中</small></div></div>
+</aside>
+<main class="main-content">
+<header class="topbar"><div><p class="eyebrow">PERSONAL DASHBOARD / 個人司令室</p><p class="topbar-title">今日をデザインする <span>// 001</span></p></div><div class="topbar-actions"><button type="button" class="refresh-button" id="refresh-button"><span aria-hidden="true">↻</span> ページを更新</button><div class="date-pill"><span class="status-dot"></span> <span id="today-date"></span></div></div></header>
+<section class="hero" id="overview"><div class="hero-copy"><p class="eyebrow">YOUR LIFE, YOUR RULES.</p><h1>今日を、<br><span>自分の手で動かす。</span></h1><p class="muted">やることを整理して、小さな一歩を積み重ねよう。<br>ここは、あなたの毎日を整えるための司令室。</p><a href="#tasks" class="button primary">今日のタスクを見る <span>↘</span></a></div><div class="core-visual" aria-label="LifeOSのサイバーコア装飾"><div class="core-ring ring-one"></div><div class="core-ring ring-two"></div><div class="core-ring ring-three"></div><div class="core-center">L</div><span class="orbit-label label-top">LIFE / 01</span><span class="orbit-label label-bottom">FOCUS MODE</span></div><div class="hero-index">LIFEOS <span>VERSION 1.1</span></div></section>
+<div id="status-message" class="storage-status" role="status">Google保存先に接続しています…</div>
+<div class="section-heading"><div><p class="eyebrow">AT A GLANCE / ひと目で確認</p><h2>今日の進捗<span>.</span></h2></div><span class="section-count">TODAY / <span id="heading-date"></span></span></div>
+<section class="stats-grid"><article class="stat-card"><div class="stat-top"><span>未完了のタスク</span><span>01</span></div><div class="stat-value" id="active-count">0<small> 件</small></div><p class="stat-caption">これから取り組むこと</p><div class="stat-line"><span id="active-bar" style="width:0%"></span></div></article><article class="stat-card"><div class="stat-top"><span>完了したタスク</span><span>02</span></div><div class="stat-value" id="done-count">0<small> 件</small></div><p class="stat-caption">片づけたこと</p><div class="stat-line cyan"><span id="done-bar" style="width:0%"></span></div></article></section>
+<div class="section-heading" id="tasks"><div><p class="eyebrow">01 / MISSION CONTROL</p><h2>タスク管理<span>.</span></h2></div><span class="section-count"><span id="task-total">0</span> 件登録中</span></div>
+<section class="panel task-panel"><form id="task-form" class="task-add"><input id="task-title" type="text" maxlength="120" placeholder="例：英単語を15分勉強する" aria-label="新しいタスク" required><button type="submit" class="button primary">＋ タスクを追加</button></form><div id="task-list" class="task-list"></div></section>
+<div class="section-heading" id="sites"><div><p class="eyebrow">02 / MY WEB LIBRARY</p><h2>マイサイト<span>.</span></h2></div><span class="section-count"><span id="site-total">0</span> 件登録中</span></div>
+<section class="panel sites-panel"><div class="sites-intro"><div><h3>自分のサイトを、ひとつの場所に。</h3><p>公開URLとGitHubリポジトリをまとめて管理。</p></div><span class="sites-badge">PERSONAL LIBRARY</span></div>
+<form id="site-form" class="site-form"><div class="site-form-grid"><label>サイト名<input id="site-name" maxlength="100" placeholder="例：ブロスタ攻略サイト" required></label><label>公開サイトURL<input id="site-url" type="url" placeholder="https://example.com" required></label><label>GitHubリポジトリURL（任意）<input id="site-repo" type="url" placeholder="https://github.com/ユーザー名/リポジトリ名"></label><label>カテゴリ<select id="site-category"><option>個人開発</option><option>ゲーム</option><option>勉強</option><option>仕事・活動</option><option>その他</option></select></label><label>説明（任意）<input id="site-description" maxlength="500" placeholder="どんなサイトかメモ"></label></div><button type="submit" class="button primary">サイトを登録する <span>↗</span></button></form>
+<div id="site-list" class="site-grid"></div><p class="storage-notice">ページ更新はLifeOSの表示を再読み込みします。登録サイトそのものを再デプロイする機能ではありません。</p></section>
+<div class="two-column"><section id="notes"><div class="section-heading compact"><div><p class="eyebrow">03 / PERSONAL JOURNAL</p><h2>今日のノート<span>.</span></h2></div></div><div class="panel note-panel"><form id="note-form"><label for="daily-note">今日の気づき・アイデア</label><textarea id="daily-note" maxlength="5000" placeholder="今日できたこと、気づいたこと、明日やることを書き留めよう…"></textarea><div class="note-bottom"><span>最大 5,000 文字</span><button type="submit" class="button secondary">ノートを保存 ↗</button></div></form></div></section></div>
+<div class="section-heading" id="data-management"><div><p class="eyebrow">04 / DATA SAFETY</p><h2>データ管理<span>.</span></h2></div><span class="section-count">BACKUP / RESTORE</span></div>
+<section class="panel data-management-panel"><div class="data-management-copy"><span class="data-management-icon">↧</span><div><h3>大切なデータを守る</h3><p>タスク・ノート・登録サイトをJSONファイルに保存。復元すると現在のデータはバックアップの内容に置き換わります。</p></div></div><div class="inline-form"><button id="export-button" class="button primary" type="button">↓ バックアップを書き出す</button><label class="backup-file-label">JSONバックアップから復元<input id="backup-file" type="file" accept=".json,application/json"></label></div><p class="storage-notice">このLifeOSはGoogle Apps Scriptのウェブアプリを経由してGoogleスプレッドシートに保存します。データが消える前に定期的なバックアップをおすすめします。</p></section>
+<footer class="footer"><span>LifeOS // 個人用ダッシュボード</span><span>自分の毎日を、自分でつくる <b>●</b></span></footer>
+</main></div>
+<iframe class="bridge-frame" name="lifeos-api-frame" id="lifeos-api-frame" title="LifeOS Google API"></iframe>
+<form id="bridge-form" method="post" target="lifeos-api-frame" action="https://script.google.com/macros/s/AKfycbxdOQk_uBCl9gYm77s9p_d2WAjPqw9BCO3dRhCxgQJP_YC5vEQ167rvH_NMoIfYHxZw/exec"><input type="hidden" name="payload" id="bridge-payload"></form>
+<script src="./static/pages-app.js" defer></script>
+</body></html>
