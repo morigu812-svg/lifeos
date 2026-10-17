@@ -37,7 +37,7 @@
   window.addEventListener("message", (event) => {
     if (event.source !== $("lifeos-api-frame").contentWindow) return;
     const data = event.data;
-    if (!data || typeof data.requestId !== "string") return;
+    if (!data || data.type !== "EA_DATA_RESULT" || typeof data.requestId !== "string") return;
     const item = pending.get(data.requestId);
     if (!item) return;
     clearTimeout(item.timer);
