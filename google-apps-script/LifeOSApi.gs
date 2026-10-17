@@ -171,7 +171,7 @@ function saveNote_(sheet, args) {
   const content = String(args.content || '');
   if (content.length > 5000) throw new Error('Note exceeds 5000 characters');
   const rows = readRows_(sheet);
-  const existing = rows.find(row => String(row.note_date) === noteDate);
+  const existing = rows.find(row => noteDateKey_(row.note_date) === noteDate);
   if (existing) {
     existing.content = content;
     writeRows_(sheet, rows);
@@ -179,6 +179,13 @@ function saveNote_(sheet, args) {
   }
   sheet.appendRow([noteDate, content]);
   return { note_date: noteDate, content: content };
+}
+
+function noteDateKey_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value == null ? '' : value).slice(0, 10);
 }
 
 function replaceData_(spreadsheet, data) {
