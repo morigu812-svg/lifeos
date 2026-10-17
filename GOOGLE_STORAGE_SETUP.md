@@ -1,53 +1,45 @@
-# LifeOS Google Sheets storage setup
+# LifeOS — GitHub Pages + Google Apps Script setup
 
-LifeOS can keep tasks, daily notes, and saved site/repository URLs in a dedicated Google Spreadsheet through Google Apps Script. The Apps Script API is in `google-apps-script/LifeOSApi.gs`.
+The repository now includes a static GitHub Pages frontend at the root `index.html`. GitHub Pages cannot run Flask/Python, so this frontend communicates with the dedicated LifeOS Apps Script API through a hidden iframe and `postMessage`.
 
-## 1. Create the private database API
+## 1. Publish the static frontend
 
-1. Open https://script.google.com/ and create a **new standalone project**. Do not use the EA-deta Apps Script project.
-2. Replace the editor's contents with the complete contents of `google-apps-script/LifeOSApi.gs` from this repository.
-3. Open **Project Settings → Script Properties** and add:
-   - `API_TOKEN`: a long, random secret value. Use a different value from any other project.
-4. Select `setupLifeOSDatabase` in the function dropdown and click **Run**. Review and approve the requested Google Sheets permissions. This creates a spreadsheet named **LifeOS Database** and saves its ID in Script Properties.
-5. Choose **Deploy → New deployment → Web app**.
-   - Execute as: **Me**
-   - Who has access: **Anyone** (the API validates the secret token itself; the token must remain private)
-6. Deploy, authorize if prompted, and copy the URL ending in `/exec`. Do not use a `/dev` test URL.
+1. In the GitHub repository, open **Settings → Pages**.
+2. Set **Deploy from a branch**, branch `main`, folder `/(root)` (or use the publishing source already configured for this repository).
+3. Save and wait for GitHub Pages to publish the root `index.html`.
+4. Open the published page while signed in to the same Google account that owns the Apps Script deployment.
 
-Keep the script and spreadsheet private. Anyone who has both the web-app URL and the secret token could read or change the LifeOS data. Never put the token in browser JavaScript or commit it to GitHub.
+The root page uses `static/style.css`, `static/favicon.svg`, and `static/pages-app.js`. The Flask templates are kept for reference but are not used by GitHub Pages.
 
-## 2. Configure Render
+## 2. Configure the Google Apps Script deployment
 
-In the Render dashboard for the LifeOS web service, open **Environment** and add:
+The static frontend must not contain a shared API secret. The API uses the Google Apps Script deployment access control instead.
 
-- `LIFEOS_GAS_API_URL`: the deployed Apps Script URL ending in `/exec`
-- `LIFEOS_GAS_API_TOKEN`: the exact same secret value as the Apps Script `API_TOKEN`
+1. Open the existing LifeOS Apps Script project and replace its code with the current repository file: `google-apps-script/LifeOSApi.gs`.
+2. Run `setupLifeOSDatabase()` once from the editor and approve Google Sheets access. This creates/opens the spreadsheet and initializes Tasks, Notes, and Sites.
+3. Choose **Deploy → Manage deployments → Edit** (pencil) or create a new web app deployment.
+4. Set **Execute as: Me**.
+5. Set **Who has access: Only myself**. This matters: the static frontend does not send an API token, so the deployment must be restricted to the owner Google account.
+6. Select **New version** and deploy. Copy the URL ending in `/exec`.
+7. In `index.html`, check the form action URL and in `static/pages-app.js`, check `API_URL`. Both must match the current deployment URL. The currently configured URL is the one the user supplied in this project.
 
-Save changes and wait for Render to redeploy. The Flask server sends requests to Apps Script, so the secret is not sent to the browser.
+Do not set access to “Anyone”. The iframe transport is intended to be protected by Google sign-in and the “Only myself” deployment setting. Never put `API_TOKEN` in browser JavaScript or commit a secret to GitHub.
 
-## 3. Preserve existing LifeOS data
+## 3. Test it
 
-**Export a backup before switching storage.**
+1. Open the GitHub Pages URL in a browser where you are signed in to the Google account that owns the Apps Script deployment.
+2. Wait for the status message to say that Google Sheets is connected.
+3. Add a test task, click the page refresh button, and verify the task remains.
+4. Save today's note and register a test site URL, then reload and verify both remain.
+5. Try **Export backup** and confirm a JSON file downloads. Only test restore with a backup you trust.
 
-1. Before adding the two Render variables, open LifeOS and choose **Data management → Export backup**.
-2. Configure the Apps Script API and Render variables as above.
-3. Once the new deployment is running, sign in to LifeOS and use **Restore from backup** to import the JSON file. This writes the backup's tasks, notes, and sites into the new LifeOS spreadsheet.
-4. Add a small test task, refresh the page, and confirm it remains. Then delete the test task if desired.
+If the page times out or reports a connection error, open the Apps Script editor and check **Executions**, confirm the latest code was deployed as a new version, and ensure access is set to **Only myself**. Google may show a sign-in/authorization screen the first time.
 
-Do not delete the old backup until the import and persistence test succeed. The old SQLite database is not migrated automatically.
+## Data and security notes
 
-## Supported storage actions
-
-- Task add, toggle, delete
-- Save today's note (older dated notes remain available)
-- Add/delete saved sites, including GitHub repository URLs
-- JSON export/import for tasks, notes, and sites
-
-Habit tracking is not currently wired to the Google API. If you later re-enable habits in the UI, its storage path must be added separately.
-
-## Troubleshooting
-
-- If the page reports it cannot connect to Google storage, check both Render variables, the Apps Script deployment URL, and Apps Script **Executions**.
-- If the API returns Unauthorized, make sure the two `API_TOKEN` values match exactly.
-- After changing Apps Script code, create a new version and update the web-app deployment to that version.
-- Without both Render variables, LifeOS continues to use its existing SQLite mode. SQLite data on a service without a persistent disk can be lost when the instance is replaced; the Google API is not active until configuration is complete.
+- Tasks, daily notes, and site/repository URLs are stored in the LifeOS Google Spreadsheet.
+- The browser transport uses a hidden iframe because a normal cross-origin `fetch()` to Apps Script is not reliable for this response pattern.
+- The browser never needs the shared `API_TOKEN`. The iframe request uses a deployment that should only be accessible to the owner account.
+- The old Flask `app.py` remains in the repository, but GitHub Pages does not execute it. Do not configure Render environment variables for the Pages frontend.
+- Existing SQLite data is not automatically imported into the spreadsheet. If you have a JSON backup from the old version, use the restore control after the connection works.
+- Habit tracking is not currently included in the GitHub Pages frontend/API.
