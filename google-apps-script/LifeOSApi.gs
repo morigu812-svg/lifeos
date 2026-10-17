@@ -74,7 +74,7 @@ function doPost(e) {
 function bridgeOutput_(result) {
   const serialized = JSON.stringify(result).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
   const html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>' +
-    'window.parent.postMessage(' + serialized + ', "https://morigu812-svg.github.io");' +
+    'window.top.postMessage(' + serialized + ', "*");' +
     '</script><p>LifeOSへの応答を送信しました。この画面は閉じてかまいません。</p></body></html>';
   return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
